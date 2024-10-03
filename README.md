@@ -10,3 +10,7 @@ The featured free eBook that Packt offers changes every 24 hours. At a high leve
 
 ### Architecture
 
+![Architecture Diagram]()
+
+
+
