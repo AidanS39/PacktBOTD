@@ -10,7 +10,7 @@ The featured free eBook that Packt offers changes every 24 hours. At a high leve
 
 ### Architecture
 
-![Architecture Diagram]()
+![Architecture Diagram](https://github.com/AidanS39/PacktBOTD/blob/main/PacktBOTD_ArchitectureDrawing.png?raw=true)
 
 
 
