@@ -12,5 +12,4 @@ The featured free eBook that Packt offers changes every 24 hours. At a high leve
 
 ![Architecture Diagram](https://github.com/AidanS39/PacktBOTD/blob/main/PacktBOTD_ArchitectureDrawing.png?raw=true)
 
-
-
+The application uses Amazon EventBridge, AWS Lambda, and Amazon Simple Notification Service, as shown above in the diagram. EventBridge acts as the trigger for the Lambda function, which
