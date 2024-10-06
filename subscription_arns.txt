@@ -1,1 +1,0 @@
-arn:aws:sns:us-east-1:654654278162:PacktBOTDNotification:38c197e0-0ede-4839-a02d-7002e4e77fbe
