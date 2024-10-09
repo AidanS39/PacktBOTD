@@ -13,7 +13,7 @@ def lambda_handler(event, context):
     sns = boto3.client("sns")
     
     sns.publish(
-        TopicArn = "arn:aws:sns:us-east-1:654654278162:PacktBOTDNotification",
+        TopicArn = "TOPIC_ARN",
         Subject = "ALERT: NEW FREE BOOK OF THE DAY",
         Message = book + " is today\'s Packt Book of the Day! \n\nGet it here:\n https://www.packtpub.com/free-learning"
         )

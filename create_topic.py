@@ -15,20 +15,21 @@ def createSNSTopic(name):
 
 
 def createSNSSubscribers(topicArn):
-    
+   
     print("Please enter an email address that will recieve the notification. Enter \"stop\" to stop.")
     email = input('Email Address: ')
     
+    sns = boto3.client('sns')
     subscriptionArns = []
 
     while email != 'stop':
-        snsReponse = sns.subscribe(
+        snsResponse = sns.subscribe(
             TopicArn = topicArn,
             Protocol = 'email',
             Endpoint = email,
             ReturnSubscriptionArn = True
         )
-        subscription.append(snsResponse['SubscriptionArn'])
+        subscriptionArns.append(snsResponse['SubscriptionArn'])
 
         print("(Optional) enter additional email addresses. Enter \"stop\" to stop.")
         email = input('Email Address: ')
@@ -106,7 +107,7 @@ def createFunction(layerVersionArn, roleArn, topicArn):
     
     lines = []
 
-    with open('lambda_function.py', 'r') as function:
+    with open('function_not_filled.py', 'r') as function:
         for line in function:
             if 'TOPIC_ARN' in line:
                 changed_line = line.replace('TOPIC_ARN',topicArn)
