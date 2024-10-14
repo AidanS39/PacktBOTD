@@ -1,16 +1,25 @@
 import boto3
+import botocore
 import json
 import zipfile
+import botocore.exceptions
 
 
 
 def createSNSTopic(name):
     
     sns = boto3.client('sns')
-    snsResponse = sns.create_topic(
-        Name = name
-    )
-    return snsResponse
+
+    try:
+        snsResponse = sns.create_topic(
+            Name = name
+        )
+    except botocore.exceptions.ClientError as error:
+        raise error
+    except Exception as exception:
+            raise exception
+    else:
+        return snsResponse
 
 
 
@@ -23,15 +32,24 @@ def createSNSSubscribers(topicArn):
     subscriptionArns = []
 
     while email != 'stop':
-        snsResponse = sns.subscribe(
-            TopicArn = topicArn,
-            Protocol = 'email',
-            Endpoint = email,
-            ReturnSubscriptionArn = True
-        )
-        subscriptionArns.append(snsResponse['SubscriptionArn'])
+        try:
+            snsResponse = sns.subscribe(
+                TopicArn = topicArn,
+                Protocol = 'email',
+                Endpoint = email,
+                ReturnSubscriptionArn = True
+            )
+            subscriptionArns.append(snsResponse['SubscriptionArn'])
+        except botocore.exceptions.ClientError as error:
+            if error.response['Error']['Code'] == 'InvalidParameter':
+                print(f'{email} is not a valid email address.')
+            else:
+                raise error
+        except Exception as exception:
+            raise exception
+            
 
-        print("(Optional) enter additional email addresses. Enter \"stop\" to stop.")
+        print("Enter another email address that will recieve the notification. Enter \"stop\" to stop.")
         email = input('Email Address: ')
     return subscriptionArns
 
@@ -54,16 +72,22 @@ def createAllowPublishRole():
 
     iam = boto3.client('iam')
 
-    iamResponse = iam.create_role(
-        RoleName = 'PacktBOTDNotification-AllowPublishRole',
-        AssumeRolePolicyDocument = json.dumps(lambdaAssumeRolePolicyDocument),
-        Description = 'Role for PacktBOTD function to allow publishing a message from sns topic',
-    )
-    return iamResponse
+    try:
+        iamResponse = iam.create_role(
+            RoleName = 'PacktBOTDNotification-AllowPublishRole',
+            AssumeRolePolicyDocument = json.dumps(lambdaAssumeRolePolicyDocument),
+            Description = 'Role for PacktBOTD function to allow publishing a message from sns topic',
+        )
+    except botocore.exceptions.ClientError as error:
+        raise error
+    except Exception as exception:
+            raise exception
+    else:
+        return iamResponse
 
 
 
-def attachAllowPublishPolicy(topicArn):
+def attachAllowPublishPolicy(topicArn, roleName):
     
     allowPublishPolicy = {
         "Version": "2012-10-17",
@@ -78,12 +102,19 @@ def attachAllowPublishPolicy(topicArn):
 
     iam = boto3.client('iam')
 
-    iamPolicyResponse = iam.put_role_policy(
-        RoleName = roleName,
-        PolicyName = 'PacktBOTDAllowPublish',
-        PolicyDocument = json.dumps(allowPublishPolicy)
-    )
-    return iamPolicyResponse
+    policyName = 'PacktBOTDAllowPublish'
+    try:
+        iamPolicyResponse = iam.put_role_policy(
+            RoleName = roleName,
+            PolicyName = policyName,
+            PolicyDocument = json.dumps(allowPublishPolicy)
+        )
+    except botocore.exceptions.ClientError as error:
+        raise error
+    except Exception as exception:
+            raise exception
+    else:
+        return policyName
 
 
 
@@ -91,15 +122,21 @@ def publishRequestsLayer():
 
     lambdaclient = boto3.client('lambda')
 
-    layerResponse = lambdaclient.publish_layer_version(
-        LayerName = 'python-requests-module',
-        Description = 'Layer for Requests python module',
-        Content = {
-            'ZipFile': open('layer_content.zip', 'rb').read()
-        },
-        CompatibleRuntimes = ['python3.12']
-    )
-    return layerResponse
+    try:
+        layerResponse = lambdaclient.publish_layer_version(
+            LayerName = 'python-requests-module',
+            Description = 'Layer for Requests python module',
+            Content = {
+                'ZipFile': open('layer_content.zip', 'rb').read()
+            },
+            CompatibleRuntimes = ['python3.12']
+        )
+    except botocore.exceptions.ClientError as error:
+        raise error
+    except Exception as exception:
+            raise exception
+    else:
+        return layerResponse
 
 
 
@@ -119,24 +156,34 @@ def createFunction(layerVersionArn, roleArn, topicArn):
         for line in lines:
             function.write(line)
 
-    zipfile.ZipFile('lambda_function.zip',mode='w').write('lambda_function.py')
+    filename = 'lambda_function.zip'
+
+    zipfile.ZipFile(filename,mode='w').write('lambda_function.py')
 
     lambdaclient = boto3.client('lambda')
 
-    functionResponse = lambdaclient.create_function(
-        FunctionName = 'notifyOfPacktFreeBook',
-        Description = 'Function to send message to PacktBOTD Notification SNS topic',
-        Runtime = 'python3.12',
-        Architectures = ['arm64'],
-        Handler = 'lambda_function.lambda_handler',
-        Layers = [layerVersionArn],
-        Role = roleArn,
-        Timeout = 5,
-        Code = {
-            'ZipFile': open('lambda_function.zip', 'rb').read()
-        }
-    )
-    return functionResponse
+    try:
+        functionResponse = lambdaclient.create_function(
+            FunctionName = 'notifyOfPacktFreeBook',
+            Description = 'Function to send message to PacktBOTD Notification SNS topic',
+            Runtime = 'python3.12',
+            Architectures = ['arm64'],
+            Handler = 'lambda_function.lambda_handler',
+            Layers = [layerVersionArn],
+            Role = roleArn,
+            Timeout = 5,
+            Code = {
+                'ZipFile': open('lambda_function.zip', 'rb').read()
+            }
+        )
+    except botocore.exceptions.ClientError as error:
+        raise error
+    except Exception as exception:
+            raise exception
+    except:
+        print(f"Error: {filename} not found.")
+    else:
+        return functionResponse
 
 
 
@@ -172,79 +219,132 @@ def createSchedulerRule(ruleName):
 
     events = boto3.client('events')
 
-    ruleResponse = events.put_rule(
-        Name = ruleName,
-        Description = 'Timer that invokes notifyOfPacktFreeBook lambda function at specified time',
-        ScheduleExpression = 'cron(' + minutes + ' ' + hours + ' * * ? *)'
-    )
-    return ruleResponse
+    try:
+        ruleResponse = events.put_rule(
+            Name = ruleName,
+            Description = 'Timer that invokes notifyOfPacktFreeBook lambda function at specified time',
+            ScheduleExpression = 'cron(' + minutes + ' ' + hours + ' * * ? *)'
+        )
+    except botocore.exceptions.ClientError as error:
+        raise error
+    except Exception as exception:
+            raise exception
+    else:
+        return ruleResponse
 
 def addPermissionsForScheduler(functionArn, ruleArn):
 
     lambdaclient = boto3.client('lambda')
 
-    permissionResponse = lambdaclient.add_permission(
-        FunctionName = functionArn,
-        StatementId = '1',
-        Action = 'lambda:InvokeFunction',
-        Principal = 'events.amazonaws.com',
-        SourceArn = ruleArn
-    )
-
-    return permissionResponse
+    try:
+        permissionResponse = lambdaclient.add_permission(
+            FunctionName = functionArn,
+            StatementId = '1',
+            Action = 'lambda:InvokeFunction',
+            Principal = 'events.amazonaws.com',
+            SourceArn = ruleArn
+        )
+    except botocore.exceptions.ClientError as error:
+        raise error
+    except Exception as exception:
+            raise exception
+    else:
+        return permissionResponse
 
 def putLambdaAsSchedulerTarget(functionArn, ruleName):
 
     events = boto3.client('events')
 
-    targetResponse = events.put_targets(
-        Rule = ruleName,
-        Targets = [
-            {
-                'Id': '1',
-                'Arn': functionArn
-            }
-        ]
-    )
-    return targetResponse
+    targetId = '1'
+    try:
+        targetResponse = events.put_targets(
+            Rule = ruleName,
+            Targets = [
+                {
+                    'Id': targetId,
+                    'Arn': functionArn
+                }
+            ]
+        )
+    except botocore.exceptions.ClientError as error:
+        raise error
+    except Exception as exception:
+            raise exception
+    else:
+        return targetId
 
-
+def writeCleanupJSON(json_file):
+    with open('cleanup.json', 'w') as jsonfile:
+        jsonfile.write(json_file)
 
 # MAIN ---------------------------------------------------
 
-# Create SNS Topic
-topicName = 'PacktBOTDNotification'
-snsResponse = createSNSTopic(topicName)
-topicArn = snsResponse['TopicArn']
+def main():
+    try:
+        filename = 'layer_content.zip'
+        content_layer = open(filename)
+        content_layer.close()
+    except:
+        print(f"Error: {filename} not found. Please run 'create_layer.sh' before running 'create_topic.py'.")
+        return -1
 
-# Add Subscribers to SNS Topic
-createSNSSubscribers(topicArn)
+    cleanup_resources = dict()
 
-# Create IAM Role for Function
-iamRoleResponse = createAllowPublishRole()
-roleName = iamRoleResponse['Role']['RoleName']
-roleArn = iamRoleResponse['Role']['Arn']
+    # Create SNS Topic
+    topicName = 'PacktBOTDNotification'
+    snsResponse = createSNSTopic(topicName)
+    topicArn = snsResponse['TopicArn']
 
-# Attach policy to IAM role
-attachAllowPublishPolicy(topicArn) 
+    cleanup_resources['topicArn'] = topicArn
+    # Add Subscribers to SNS Topic
+    subscribeResponse = createSNSSubscribers(topicArn)
 
-# Publish Requests Layer
-layerResponse = publishRequestsLayer()
-layerVersionArn = layerResponse['LayerVersionArn']
+    cleanup_resources['topicSubscribers'] = subscribeResponse
 
-# Create Scheduler
-ruleName = 'PacktLambdaTimer'
-ruleResponse = createSchedulerRule(ruleName)
-ruleArn = ruleResponse['RuleArn']
+    # Create IAM Role for Function
+    iamRoleResponse = createAllowPublishRole()
+    roleName = iamRoleResponse['Role']['RoleName']
+    roleArn = iamRoleResponse['Role']['Arn']
 
-# Create Function
-functionResponse = createFunction(layerVersionArn,roleArn,topicArn)
-functionArn = functionResponse['FunctionArn']
+    cleanup_resources['roleArn'] = roleArn
+    cleanup_resources['roleName'] = roleName
+    # Attach policy to IAM role
+    policyName = attachAllowPublishPolicy(topicArn, roleName) 
+    
+    cleanup_resources['policyName'] = policyName
+    # Publish Requests Layer
+    layerResponse = publishRequestsLayer()
+    layerVersionArn = layerResponse['LayerVersionArn']
+    layerArn = layerResponse['LayerArn']
+    layerVersion = layerResponse['Version']
 
-# Add Permissions to Lambda for Scheduler
-addPermissionsForScheduler(functionArn, ruleArn)
+    cleanup_resources['layerVersionArn'] = layerVersionArn
+    cleanup_resources['layerArn'] = layerArn
+    cleanup_resources['layerVersion'] = layerVersion
+    # Create Scheduler
+    ruleName = 'PacktLambdaTimer'
+    ruleResponse = createSchedulerRule(ruleName)
+    ruleArn = ruleResponse['RuleArn']
 
-# Put Lambda as Scheduler's Target
-putLambdaAsSchedulerTarget(functionArn, ruleName)
+    cleanup_resources['ruleArn'] = ruleArn
+    cleanup_resources['ruleName'] = ruleName
+    # Create Function
+    functionResponse = createFunction(layerVersionArn,roleArn,topicArn)
+    functionArn = functionResponse['FunctionArn']
+
+    cleanup_resources['functionArn'] = functionArn
+    # Add Permissions to Lambda for Scheduler
+    addPermissionsForScheduler(functionArn, ruleArn)
+
+    # Put Lambda as Scheduler's Target
+    eventTargetResponse = putLambdaAsSchedulerTarget(functionArn, ruleName)
+    
+    cleanup_resources['targetId'] = eventTargetResponse
+    #write cleanup resource dictionary to json file
+    cleanup_json = json.dumps(cleanup_resources)
+    writeCleanupJSON(cleanup_json)
+        
+
+main()
 
 
