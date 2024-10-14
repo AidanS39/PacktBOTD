@@ -36,7 +36,7 @@ The featured free eBook that Packt offers changes every 24 hours. At a high leve
 
 ## Architecture
 
-![Architecture Diagram](https://github.com/AidanS39/PacktBOTD/blob/main/PacktBOTD_ArchitectureDrawing.jpg?raw=true)
+![Architecture Diagram](https://github.com/AidanS39/PacktBOTD/blob/main/PacktBOTD_ArchitectureDrawing.svg?raw=true)
 
 The application uses Amazon EventBridge, AWS Lambda, and Amazon Simple Notification Service, as shown above in the diagram. The EventBridge event *PacktLambdaTimer* is a timed event that triggers the Lambda function *notifyOfPacktFreeBook* every 24 hours. *PacktLambdaTimer* uses the cron notation `cron(10 4 * * ? *)`, which sets a timer for the event to trigger the lambda function at 12:10 AM ET every day.
 
