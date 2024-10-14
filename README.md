@@ -32,7 +32,7 @@ The featured free eBook that Packt offers changes every 24 hours. At a high leve
    
 3. Run the `create_topic.py` python script with `python3 create_topic.py`. You will need to provide some input such as any email addresses you want to subscribe to the SNS topic, and the time you want the SNS topic to publish the Book of the Day message.
 
-4. Currently, a solution is being created to clean up the AWS resources and files created. For now, AWS resources and files need to be cleaned up manually. This step will be updated once a solution has been created.
+4. If you would like to delete this application and clean up any AWS resources that were deployed, simply run the cleanup.py python script with `python3 cleanup.py`.
 
 ## Architecture
 
