@@ -72,6 +72,7 @@ os.rmdir('python')
 os.remove('layer_content.zip')
 os.remove('lambda_function.py')
 os.remove('lambda_function.zip')
+os.remove('cleanup.json')
 
 print(resources.keys())
         
